@@ -50,7 +50,7 @@
         <input type="text" id="fb-key" placeholder="напр: my_party_2026" class="bg-zinc-800 text-white border border-zinc-700 !important w-full sm:w-48 text-left px-3 py-1.5 rounded focus:border-emerald-500">
     </div>
     <div class="flex gap-2 w-full sm:w-auto sm:ml-auto">
-        <button onclick="window.cloudAction('SAVE')" class="flex-1 sm:flex-none bg-blue-700 hover:bg-blue-600 px-4 py-1.5 rounded font-bold uppercase transition">Зберегти</button>
+        <button onclick="window.cloudAction('SAVE')" class="flex-1 sm:flex-none bg-blue-700 hover:bg-blue-600 px-4 py-1.5 rounded font-bold uppercase transition">Хмара 💾</button>
         <button onclick="window.cloudAction('LOAD')" class="flex-1 sm:flex-none bg-emerald-700 hover:bg-emerald-600 px-4 py-1.5 rounded font-bold uppercase transition">Завантажити</button>
     </div>
 </div>
@@ -144,7 +144,16 @@
                         <button onclick="window.addItem('attacks', 'atk')" class="bg-black text-white py-1.5 text-[10px] font-bold uppercase">Додати атаку</button>
                     </div>
                 </div>
+                <div class="dnd-border min-h-[200px] flex flex-col mt-4">
+                <h3>Риси та Особливості</h3>
+                <div id="traits-list" class="space-y-1 my-2 flex-grow"></div>
+                <div class="flex flex-col gap-1 pt-2 border-t mt-auto bg-gray-50 p-2">
+                    <input type="text" id="trait-n" placeholder="Назва риси" class="text-xs border border-gray-300 !important px-1 w-full mb-1">
+                    <textarea id="trait-d" placeholder="Опис..." class="text-xs border border-gray-300 !important px-1 w-full h-16 bg-white mb-1"></textarea>
+                    <button onclick="window.addItem('traits', 'trait')" class="bg-black text-white py-1.5 text-[10px] font-bold uppercase">Додайте рису</button>
+                </div>
             </div>
+</div>
         </div>
     </div>
 
@@ -219,7 +228,7 @@
     const emptyChar = () => ({
         name: "Новий Герой", class_lvl: "", race: "", alignment: "",
         stats: {str:10, dex:10, con:10, int:10, wis:10, cha:10},
-        profSaves: [], profSkills: [], inventory: [], spells: [], attacks: [],
+        profSaves: [], profSkills: [], inventory: [], spells: [], attacks: [], traits: [],
         prof: 2, ac: 10, init: 0, speed: 30, curHP: 10, maxHP: 10, tempHP: 0,
         gp: 0, sp: 0, spAbility: "INT", spDC: 8, spBonus: 0,
         spellConfig: [0,0,0,0,0,0,0,0,0], 
@@ -325,6 +334,8 @@
         };
         renderGeneric(c.attacks, 'atk-list', 'attacks');
         renderGeneric(c.inventory, 'inv-list', 'inventory');
+        renderGeneric(c.traits || [], 'traits-list', 'traits');
+        
 
         let spHtml = '';
         for(let i=0; i<=9; i++) {
@@ -355,12 +366,28 @@
     window.updStat = (k, v) => { state.chars[state.activeChar].stats[k] = parseInt(v) || 10; window.renderAll(); window.saveToStorage(); };
     window.tglSave = (k) => { const s = state.chars[state.activeChar].profSaves; state.chars[state.activeChar].profSaves = s.includes(k) ? s.filter(x=>x!==k) : [...s, k]; window.renderAll(); window.saveToStorage(); };
     window.tglSkill = (n) => { const s = state.chars[state.activeChar].profSkills; state.chars[state.activeChar].profSkills = s.includes(n) ? s.filter(x=>x!==n) : [...s, n]; window.renderAll(); window.saveToStorage(); };
-    window.addItem = (type, pref) => {
-        const n = document.getElementById(pref+'-n').value;
-        const d = document.getElementById(pref+'-d').value;
-        const l = document.getElementById('sp-lvl-sel')?.value || 0;
-        if(n) { state.chars[state.activeChar][type].push({n,d,l}); document.getElementById(pref+'-n').value = ''; if(document.getElementById(pref+'-d')) document.getElementById(pref+'-d').value = ''; window.renderAll(); window.saveToStorage(); }
-    };
+   window.addItem = (type, pref) => {
+    const n = document.getElementById(pref+'-n').value;
+    const d = document.getElementById(pref+'-d').value;
+    // Для заклинань використовуємо рівень, для іншого - 0
+    const l = (pref === 'sp') ? (document.getElementById('sp-lvl-sel')?.value || 0) : 0;
+    
+    if(n) { 
+        // Перевіряємо, чи існує масив у персонажа, якщо ні - створюємо
+        if (!state.chars[state.activeChar][type]) {
+            state.chars[state.activeChar][type] = [];
+        }
+        
+        state.chars[state.activeChar][type].push({n, d, l}); 
+        
+        // Очищуємо поля
+        document.getElementById(pref+'-n').value = ''; 
+        if(document.getElementById(pref+'-d')) document.getElementById(pref+'-d').value = ''; 
+        
+        window.renderAll(); 
+        window.saveToStorage(); 
+    }
+};
     
     window.delGeneric = (t, i) => { if(confirm("Видалити цей елемент?")) { state.chars[state.activeChar][t].splice(i, 1); window.renderAll(); window.saveToStorage(); } };
     window.delSpell = (i) => { if(confirm("Видалити заклинання?")) { state.chars[state.activeChar].spells.splice(i, 1); window.renderAll(); window.saveToStorage(); } };

@@ -139,7 +139,7 @@
                     <div class="flex flex-col gap-1 pt-2 border-t mt-auto bg-gray-50 p-2">
                         <div class="flex gap-1">
                             <input type="text" id="atk-n" placeholder="Зброя" class="text-xs border border-gray-300 !important px-1 w-1/2">
-                            <input type="text" id="atk-d" placeholder="Урон" class="text-xs border border-gray-300 !important px-1 w-1/2">
+                            <input type="text" id="atk-d" placeholder="Опис" class="text-xs border border-gray-300 !important px-1 w-1/2">
                         </div>
                         <button onclick="window.addItem('attacks', 'atk')" class="bg-black text-white py-1.5 text-[10px] font-bold uppercase">Додати атаку</button>
                     </div>
@@ -334,12 +334,19 @@
         renderList('skills-list', skills, 'tglSkill', true);
 
         const renderGeneric = (list, id, type) => {
-            document.getElementById(id).innerHTML = list.map((item, i) => `
-                <div class="flex justify-between items-center border-b py-1 hover:bg-black/5 px-2">
-                    <span class="cursor-help font-bold text-[11px]" onclick="window.showDesc('${item.n}', '${item.d}')">${item.n}</span>
-                    <span class="text-red-400 text-lg cursor-pointer px-2" onclick="window.delGeneric('${type}', ${i})">×</span>
-                </div>`).join('');
-        };
+    const target = document.getElementById(id);
+    if (!target) return;
+    
+    target.innerHTML = list.map((item, i) => `
+        <div class="flex justify-between items-center border-b py-1 hover:bg-black/5 px-2">
+            <!-- Клік по назві відкриває опис через showDesc -->
+            <span class="cursor-help font-bold text-[11px] flex-grow" onclick="window.showDesc('${item.n.replace(/'/g, "\\'")}', '${item.d.replace(/'/g, "\\'")}')">
+                ${item.n}
+            </span>
+            <span class="text-gray-500 text-[10px] mr-2">${item.d || ''}</span>
+            <span class="text-red-400 text-lg cursor-pointer px-2" onclick="window.delGeneric('${type}', ${i})">×</span>
+        </div>`).join('');
+};
         renderGeneric(c.attacks, 'atk-list', 'attacks');
         renderGeneric(c.inventory, 'inv-list', 'inventory');
         renderGeneric(c.traits || [], 'traits-list', 'traits');

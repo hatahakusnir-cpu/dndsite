@@ -337,14 +337,17 @@
     const target = document.getElementById(id);
     if (!target) return;
     
-    target.innerHTML = list.map((item, i) => `
+    target.innerHTML = (list || []).map((item, i) => `
         <div class="flex justify-between items-center border-b py-1 hover:bg-black/5 px-2">
-            <!-- Клік по назві відкриває опис через showDesc -->
-            <span class="cursor-help font-bold text-[11px] flex-grow" onclick="window.showDesc('${item.n.replace(/'/g, "\\'")}', '${item.d.replace(/'/g, "\\'")}')">
+            <!-- Клік по назві відкриває модальне вікно -->
+            <span class="cursor-help font-bold text-[11px] flex-grow hover:text-red-800 transition-colors" 
+                  onclick="window.showDesc('${item.n.replace(/'/g, "\\'")}', '${(item.d || "").replace(/'/g, "\\'").replace(/\n/g, " ")}')">
                 ${item.n}
             </span>
-            <span class="text-gray-500 text-[10px] mr-2">${item.d || ''}</span>
-            <span class="text-red-400 text-lg cursor-pointer px-2" onclick="window.delGeneric('${type}', ${i})">×</span>
+            
+            <!-- Кнопка видалення -->
+            <span class="text-red-400 text-lg cursor-pointer px-2 ml-2 leading-none" 
+                  onclick="window.delGeneric('${type}', ${i})">×</span>
         </div>`).join('');
 };
         renderGeneric(c.attacks, 'atk-list', 'attacks');

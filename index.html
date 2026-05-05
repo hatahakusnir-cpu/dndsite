@@ -333,22 +333,28 @@
         renderList('saves-list', stats, 'tglSave', false);
         renderList('skills-list', skills, 'tglSkill', true);
 
-        const renderGeneric = (list, id, type) => {
+       const renderGeneric = (list, id, type) => {
     const target = document.getElementById(id);
     if (!target) return;
     
-    target.innerHTML = (list || []).map((item, i) => `
+    target.innerHTML = (list || []).map((item, i) => {
+        // Очищаємо опис від символів, які ламають код (апострофи, лапки, переноси)
+        const safeDesc = (item.d || "")
+            .replace(/'/g, "\\'")     // Екрануємо одинарні лапки
+            .replace(/"/g, "&quot;")  // Замінюємо подвійні лапки
+            .replace(/\n/g, " ")      // Прибираємо переноси рядків
+            .replace(/'/g, "’");     // Замінюємо програмістський апостроф на текстовий
+
+        return `
         <div class="flex justify-between items-center border-b py-1 hover:bg-black/5 px-2">
-            <!-- Клік по назві відкриває модальне вікно -->
-            <span class="cursor-help font-bold text-[11px] flex-grow hover:text-red-800 transition-colors" 
-                  onclick="window.showDesc('${item.n.replace(/'/g, "\\'")}', '${(item.d || "").replace(/'/g, "\\'").replace(/\n/g, " ")}')">
+            <span class="cursor-help font-bold text-[11px] flex-grow hover:text-red-800" 
+                  onclick="window.showDesc('${item.n.replace(/'/g, "\\'")}', '${safeDesc}')">
                 ${item.n}
             </span>
-            
-            <!-- Кнопка видалення -->
-            <span class="text-red-400 text-lg cursor-pointer px-2 ml-2 leading-none" 
+            <span class="text-red-400 text-lg cursor-pointer px-2 ml-2" 
                   onclick="window.delGeneric('${type}', ${i})">×</span>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 };
         renderGeneric(c.attacks, 'atk-list', 'attacks');
         renderGeneric(c.inventory, 'inv-list', 'inventory');

@@ -38,17 +38,19 @@
         .char-tab { padding: 6px 12px; border: 1px solid black; background: #ddd; cursor: pointer; border-radius: 8px 8px 0 0; font-family: 'Marcellus', serif; font-size: 10px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
         .char-tab.active { background: var(--parchment); border-bottom: 2px solid var(--parchment); font-weight: bold; }
         .add-char-btn { padding: 6px 15px; background: #222; color: #00ff88; border-radius: 8px 8px 0 0; font-weight: bold; cursor: pointer; border: 1px solid black; border-bottom: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
 
-<div class="max-w-[950px] mx-auto mb-4 p-3 bg-zinc-900 text-white rounded-lg flex flex-col sm:row gap-3 text-[11px] items-center shadow-xl">
+<!-- Cloud Management -->
+<div class="max-w-[950px] mx-auto mb-4 p-3 bg-zinc-900 text-white rounded-lg flex flex-col sm:flex-row gap-3 text-[11px] items-center shadow-xl">
     <div class="flex flex-col gap-1 w-full sm:w-auto">
-        <label class="uppercase font-bold text-zinc-400">Ключ ID</label>
-        <input type="text" id="fb-key" placeholder="напр: legolas_77" class="bg-zinc-800 text-white border border-zinc-700 !important w-full sm:w-48 text-left px-3 py-1.5 rounded focus:border-emerald-500">
+        <label class="uppercase font-bold text-zinc-400">Ключ ID (для хмари)</label>
+        <input type="text" id="fb-key" placeholder="напр: my_party_2026" class="bg-zinc-800 text-white border border-zinc-700 !important w-full sm:w-48 text-left px-3 py-1.5 rounded focus:border-emerald-500">
     </div>
     <div class="flex gap-2 w-full sm:w-auto sm:ml-auto">
-        <button onclick="window.cloudAction('SAVE')" class="flex-1 sm:flex-none bg-blue-700 hover:bg-blue-600 px-4 py-1.5 rounded font-bold uppercase transition">Зберегти</button>
+        <button onclick="window.cloudAction('SAVE')" class="flex-1 sm:flex-none bg-blue-700 hover:bg-blue-600 px-4 py-1.5 rounded font-bold uppercase transition">Хмара 💾</button>
         <button onclick="window.cloudAction('LOAD')" class="flex-1 sm:flex-none bg-emerald-700 hover:bg-emerald-600 px-4 py-1.5 rounded font-bold uppercase transition">Завантажити</button>
     </div>
 </div>
@@ -59,6 +61,7 @@
 </div>
 
 <div class="sheet">
+    <!-- Header -->
     <header class="flex flex-col md:grid md:grid-cols-12 gap-4 border-b-2 border-black pb-4 mb-6">
         <div class="md:col-span-4 border-b md:border-none border-black/10 pb-2 md:pb-0">
             <input type="text" id="name" oninput="window.upd('name')" class="text-2xl md:text-3xl italic font-bold !text-left" placeholder="Ім'я">
@@ -71,6 +74,7 @@
         </div>
     </header>
 
+    <!-- Health Section -->
     <div class="health-container shadow-md">
         <div class="hp-progress-bg"><div id="hp-bar-fill" class="hp-fill"></div><div id="hp-temp-fill" class="hp-temp-fill"></div></div>
         <div class="flex flex-col md:grid md:grid-cols-12 p-2 md:p-3 items-center gap-4">
@@ -105,12 +109,14 @@
         </div>
     </div>
 
+    <!-- Navigation -->
     <nav class="flex border-b border-black/20 mb-4 md:mb-6 overflow-x-auto no-scrollbar">
         <div id="btn-p1" class="shrink-0 flex-1 p-2 md:p-3 text-center cursor-pointer font-bold border-b-2 text-xs md:text-sm" onclick="window.showPage(1)">СТАТИ</div>
         <div id="btn-p2" class="shrink-0 flex-1 p-2 md:p-3 text-center cursor-pointer font-bold border-b-2 text-xs md:text-sm" onclick="window.showPage(2)">МАГІЯ</div>
         <div id="btn-p3" class="shrink-0 flex-1 p-2 md:p-3 text-center cursor-pointer font-bold border-b-2 text-xs md:text-sm" onclick="window.showPage(3)">РЮКЗАК</div>
     </nav>
 
+    <!-- Page 1: Stats -->
     <div id="page-1" class="page block">
         <div class="flex flex-col md:grid md:grid-cols-12 gap-4 md:gap-6">
             <div class="flex flex-wrap justify-center gap-2 md:col-span-2 md:flex-col" id="stats-container"></div>
@@ -142,6 +148,7 @@
         </div>
     </div>
 
+    <!-- Page 2: Spells -->
     <div id="page-2" class="page hidden">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="dnd-border"><input type="text" id="spAbility" oninput="window.upd('spAbility')"><h3>Хар-ка</h3></div>
@@ -165,6 +172,7 @@
         </div>
     </div>
 
+    <!-- Page 3: Inventory -->
     <div id="page-3" class="page hidden">
         <div class="flex flex-col md:grid md:grid-cols-12 gap-4">
             <div class="flex gap-2 md:flex-col md:col-span-3">
@@ -187,6 +195,7 @@
     </div>
 </div>
 
+<!-- Modal -->
 <div id="desc-modal" class="modal" onclick="this.style.display='none'">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h2 id="modal-title" class="text-xl md:text-2xl font-bold border-b-2 border-black mb-4 uppercase text-red-900"></h2>
@@ -196,7 +205,9 @@
 </div>
 
 <script>
+    // --- ВСТАВТЕ СВІЙ URL ТУТ ---
     const DB_URL = "https://dndcharactersheet-7bcf2-default-rtdb.europe-west1.firebasedatabase.app/.json";
+
     const stats = ["str", "dex", "con", "int", "wis", "cha"];
     const skills = [
         {n:"Атлетика", s:"str"}, {n:"Акробатика", s:"dex"}, {n:"Спритність рук", s:"dex"}, {n:"Прихованість", s:"dex"},
@@ -218,6 +229,35 @@
     let state = JSON.parse(localStorage.getItem('dnd_v5_local')) || { chars: [emptyChar()], activeChar: 0 };
     window.saveToStorage = () => localStorage.setItem('dnd_v5_local', JSON.stringify(state));
 
+    // Cloud Logic
+    window.cloudAction = async (type) => {
+        const key = document.getElementById('fb-key').value.trim();
+        if (!key) return alert("Введіть Ключ ID!");
+        if (DB_URL.includes("your-project-id")) return alert("Спочатку вставте свій URL від Firebase у код!");
+        
+        const url = DB_URL.replace(".json", `/${key}.json`);
+
+        if (type === 'SAVE') {
+            try {
+                const res = await fetch(url, { method: 'PUT', body: JSON.stringify(state) });
+                if (res.ok) alert("Дані збережено в хмарі!");
+            } catch (e) { alert("Помилка мережі"); }
+        } 
+        
+        if (type === 'LOAD') {
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data) {
+                    state = data;
+                    window.renderAll();
+                    window.saveToStorage();
+                    alert("Дані успішно завантажено!");
+                } else alert("Нічого не знайдено за цим ID");
+            } catch (e) { alert("Помилка завантаження"); }
+        }
+    };
+
     window.tglSlot = (lvlIdx, slotIdx) => {
         const c = state.chars[state.activeChar];
         if(!c.usedSlots[lvlIdx]) c.usedSlots[lvlIdx] = [];
@@ -233,12 +273,11 @@
     };
 
     window.longRest = () => { 
-        if(confirm("Відновити HP та всі комірки заклинань?")) {
+        if(confirm("Відпочити? HP та комірки відновляться.")) {
             const c = state.chars[state.activeChar]; 
             c.curHP = c.maxHP; 
             c.usedSlots = [[],[],[],[],[],[],[],[],[]];
-            window.renderAll(); 
-            window.saveToStorage(); 
+            window.renderAll(); window.saveToStorage(); 
         }
     };
 
@@ -292,7 +331,6 @@
             const lvlSpells = c.spells.filter(s => parseInt(s.l) === i);
             const isNotCantrip = i > 0;
             const slotCount = isNotCantrip ? (c.spellConfig[i-1] || 0) : 0;
-            
             let slotsHtml = '';
             if(isNotCantrip) {
                 for(let s=0; s<slotCount; s++) {
@@ -300,16 +338,10 @@
                     slotsHtml += `<div class="slot-box ${isUsed?'used':''}" onclick="window.tglSlot(${i-1}, ${s})"></div>`;
                 }
             }
-
             spHtml += `<div class="dnd-border">
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="border-none m-0">${i==0?'Фокуси':i+' Рівень'}</h3>
-                    ${isNotCantrip ? `
-                        <div class="flex items-center gap-1">
-                            <div class="flex flex-wrap max-w-[100px] justify-end">${slotsHtml}</div>
-                            <input type="number" value="${slotCount}" oninput="window.updSpellCfg(${i-1}, this.value)" class="w-8 border-b border-black text-xs font-bold">
-                        </div>
-                    ` : ''}
+                    ${isNotCantrip ? `<div class="flex items-center gap-1"><div class="flex flex-wrap max-w-[100px] justify-end">${slotsHtml}</div><input type="number" value="${slotCount}" oninput="window.updSpellCfg(${i-1}, this.value)" class="w-8 border-b border-black text-xs font-bold"></div>` : ''}
                 </div>
                 <div class="text-[10px] space-y-1">
                     ${lvlSpells.map(s => `<div class="flex justify-between border-b pb-1"><span class="cursor-help font-bold" onclick="window.showDesc('${s.n}', '${s.d}')">${s.n}</span><span onclick="window.delSpell(${c.spells.indexOf(s)})" class="text-red-300 cursor-pointer text-lg leading-none">×</span></div>`).join('')}
@@ -330,25 +362,9 @@
         if(n) { state.chars[state.activeChar][type].push({n,d,l}); document.getElementById(pref+'-n').value = ''; if(document.getElementById(pref+'-d')) document.getElementById(pref+'-d').value = ''; window.renderAll(); window.saveToStorage(); }
     };
     
-    // ДОДАНО ПІДТВЕРДЖЕННЯ ВИДАЛЕННЯ ТУТ
-    window.delGeneric = (t, i) => { 
-        const item = state.chars[state.activeChar][t][i];
-        if(confirm(`Видалити "${item.n}"?`)) {
-            state.chars[state.activeChar][t].splice(i, 1); 
-            window.renderAll(); 
-            window.saveToStorage(); 
-        }
-    };
+    window.delGeneric = (t, i) => { if(confirm("Видалити цей елемент?")) { state.chars[state.activeChar][t].splice(i, 1); window.renderAll(); window.saveToStorage(); } };
+    window.delSpell = (i) => { if(confirm("Видалити заклинання?")) { state.chars[state.activeChar].spells.splice(i, 1); window.renderAll(); window.saveToStorage(); } };
     
-    window.delSpell = (i) => { 
-        const spell = state.chars[state.activeChar].spells[i];
-        if(confirm(`Видалити заклинання "${spell.n}"?`)) {
-            state.chars[state.activeChar].spells.splice(i, 1); 
-            window.renderAll(); 
-            window.saveToStorage(); 
-        }
-    };
-
     window.calcHP = (dir) => {
         const c = state.chars[state.activeChar];
         const val = parseInt(document.getElementById('hp-input').value) || 0;

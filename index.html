@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>D&D Character Sheet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Spectral:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --parchment: #fdfaf3; --ink: #1a1a1a; --dnd-red: #9b2226; }
+        body { background: #1a1a1a; color: var(--ink); font-family: 'Spectral', serif; padding: 10px; }
+        .sheet { background: var(--parchment); max-width: 950px; margin: 0 auto; padding: 15px; box-shadow: 0 0 60px rgba(0,0,0,0.8); border-radius: 4px; position: relative; }
+        @media (min-width: 768px) { .sheet { padding: 25px; } }
+        
+        input, select, textarea { text-align: center; background: transparent !important; border: none !important; outline: none; width: 100%; }
+        h3 { font-family: 'Marcellus', serif; font-size: 10px; text-transform: uppercase; font-weight: bold; text-align: center; border-top: 1px solid rgba(0,0,0,0.1); margin-top: 5px; }
+        .dnd-border { border: 1px solid black; background: white; padding: 10px; position: relative; }
+        
+        .health-container { border: 2px solid black; background: white; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+        .hp-progress-bg { background: #eee; height: 14px; width: 100%; border-bottom: 1px solid black; position: relative; }
+        .hp-fill { background: linear-gradient(90deg, #780000, #d00000); height: 100%; transition: width 0.4s ease; }
+        .hp-temp-fill { background: #0077b6; height: 100%; position: absolute; top: 0; opacity: 0.5; transition: width 0.4s ease; }
+
+        .stat-box { border: 2px solid black; border-radius: 10px 10px 30px 30px; text-align: center; width: 80px; background: white; margin-bottom: 10px; }
+        .mod-val { font-size: 24px; font-weight: bold; }
+        .base-val { border-top: 1px solid black !important; font-size: 12px; width: 45px !important; margin: 0 auto; }
+
+        .dot { width: 12px; height: 12px; border: 1px solid black; border-radius: 50%; cursor: pointer; flex-shrink: 0; }
+        .dot.active { background: black; }
+
+        .slot-box { width: 14px; height: 14px; border: 1px solid black; border-radius: 2px; cursor: pointer; display: inline-block; margin-right: 3px; background: white; transition: background 0.2s; }
+        .slot-box.used { background: var(--dnd-red); border-color: var(--dnd-red); }
+
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
+        .modal-content { background: var(--parchment); padding: 20px; max-width: 500px; width: 100%; border: 3px solid black; box-shadow: 0 0 30px rgba(0,0,0,0.5); overflow-y: auto; max-height: 90vh; }
+        
+        .char-tab { padding: 6px 12px; border: 1px solid black; background: #ddd; cursor: pointer; border-radius: 8px 8px 0 0; font-family: 'Marcellus', serif; font-size: 10px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .char-tab.active { background: var(--parchment); border-bottom: 2px solid var(--parchment); font-weight: bold; }
+        .add-char-btn { padding: 6px 15px; background: #222; color: #00ff88; border-radius: 8px 8px 0 0; font-weight: bold; cursor: pointer; border: 1px solid black; border-bottom: none; }
+    </style>
+</head>
+<body>
+
+<div class="max-w-[950px] mx-auto mb-4 p-3 bg-zinc-900 text-white rounded-lg flex flex-col sm:row gap-3 text-[11px] items-center shadow-xl">
+    <div class="flex flex-col gap-1 w-full sm:w-auto">
+        <label class="uppercase font-bold text-zinc-400">Ключ ID</label>
+        <input type="text" id="fb-key" placeholder="напр: legolas_77" class="bg-zinc-800 text-white border border-zinc-700 !important w-full sm:w-48 text-left px-3 py-1.5 rounded focus:border-emerald-500">
+    </div>
+    <div class="flex gap-2 w-full sm:w-auto sm:ml-auto">
+        <button onclick="window.cloudAction('SAVE')" class="flex-1 sm:flex-none bg-blue-700 hover:bg-blue-600 px-4 py-1.5 rounded font-bold uppercase transition">Зберегти</button>
+        <button onclick="window.cloudAction('LOAD')" class="flex-1 sm:flex-none bg-emerald-700 hover:bg-emerald-600 px-4 py-1.5 rounded font-bold uppercase transition">Завантажити</button>
+    </div>
+</div>
+
+<div class="max-w-[950px] mx-auto flex items-end gap-1 mb-[-1px] relative z-10 overflow-hidden">
+    <div id="char-selector" class="flex items-end gap-1 overflow-x-auto no-scrollbar pb-1"></div>
+    <button onclick="window.addNewChar()" class="add-char-btn shrink-0" title="Додати">+</button>
+</div>
+
+<div class="sheet">
+    <header class="flex flex-col md:grid md:grid-cols-12 gap-4 border-b-2 border-black pb-4 mb-6">
+        <div class="md:col-span-4 border-b md:border-none border-black/10 pb-2 md:pb-0">
+            <input type="text" id="name" oninput="window.upd('name')" class="text-2xl md:text-3xl italic font-bold !text-left" placeholder="Ім'я">
+            <span class="text-[9px] md:text-[10px] uppercase font-bold">Ім'я персонажа</span>
+        </div>
+        <div class="md:col-span-8 grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div class="border-b border-black"><input type="text" id="class_lvl" oninput="window.upd('class_lvl')" class="text-xs md:text-sm"><h3>Клас/Рівень</h3></div>
+            <div class="border-b border-black"><input type="text" id="race" oninput="window.upd('race')" class="text-xs md:text-sm"><h3>Раса</h3></div>
+            <div class="border-b border-black col-span-2 md:col-span-1"><input type="text" id="alignment" oninput="window.upd('alignment')" class="text-xs md:text-sm"><h3>Світогляд</h3></div>
+        </div>
+    </header>
+
+    <div class="health-container shadow-md">
+        <div class="hp-progress-bg"><div id="hp-bar-fill" class="hp-fill"></div><div id="hp-temp-fill" class="hp-temp-fill"></div></div>
+        <div class="flex flex-col md:grid md:grid-cols-12 p-2 md:p-3 items-center gap-4">
+            <div class="flex w-full md:col-span-5 border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0">
+                <div class="flex-1 text-center">
+                    <div class="flex items-center justify-center gap-1">
+                        <input type="number" id="curHP" oninput="window.upd('curHP')" class="text-2xl md:text-3xl font-bold w-12 md:w-16">
+                        <span class="text-xl text-gray-400">/</span>
+                        <input type="number" id="maxHP" oninput="window.upd('maxHP')" class="text-lg md:text-xl font-bold w-12 md:w-16 text-gray-500">
+                    </div>
+                    <h3>HP</h3>
+                </div>
+                <div class="flex-1 text-center border-l border-gray-100">
+                    <input type="number" id="tempHP" oninput="window.upd('tempHP')" class="text-2xl md:text-3xl font-bold text-blue-600">
+                    <h3 class="text-blue-700 text-[8px] md:text-[10px]">Тимчасові</h3>
+                </div>
+            </div>
+            
+            <div class="w-full md:col-span-5 flex items-center justify-center gap-3">
+                <button onclick="window.calcHP(-1)" class="w-10 h-10 md:w-12 md:h-12 bg-black text-white rounded-full font-bold text-xl">-</button>
+                <input type="number" id="hp-input" placeholder="0" class="text-3xl md:text-4xl font-bold w-20 md:w-24 bg-gray-50 border border-gray-300 !important rounded">
+                <button onclick="window.calcHP(1)" class="w-10 h-10 md:w-12 md:h-12 bg-red-800 text-white rounded-full font-bold text-xl">+</button>
+            </div>
+
+            <div class="w-full md:col-span-2 flex flex-row md:flex-col items-center justify-around md:justify-center border-t md:border-t-0 pt-2 md:pt-0">
+                <button onclick="window.longRest()" class="text-[8px] border border-black px-2 py-1 uppercase font-bold">Відпочинок</button>
+                <div class="flex items-center gap-2">
+                    <div class="dot" id="insp-dot" onclick="window.tglInsp()"></div>
+                    <span class="text-[9px] uppercase font-bold">Натхн.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="flex border-b border-black/20 mb-4 md:mb-6 overflow-x-auto no-scrollbar">
+        <div id="btn-p1" class="shrink-0 flex-1 p-2 md:p-3 text-center cursor-pointer font-bold border-b-2 text-xs md:text-sm" onclick="window.showPage(1)">СТАТИ</div>
+        <div id="btn-p2" class="shrink-0 flex-1 p-2 md:p-3 text-center cursor-pointer font-bold border-b-2 text-xs md:text-sm" onclick="window.showPage(2)">МАГІЯ</div>
+        <div id="btn-p3" class="shrink-0 flex-1 p-2 md:p-3 text-center cursor-pointer font-bold border-b-2 text-xs md:text-sm" onclick="window.showPage(3)">РЮКЗАК</div>
+    </nav>
+
+    <div id="page-1" class="page block">
+        <div class="flex flex-col md:grid md:grid-cols-12 gap-4 md:gap-6">
+            <div class="flex flex-wrap justify-center gap-2 md:col-span-2 md:flex-col" id="stats-container"></div>
+            
+            <div class="md:col-span-4 space-y-4">
+                <div class="dnd-border text-center"><input type="number" id="prof" oninput="window.upd('prof')" class="text-xl font-bold"><h3>Майстерність</h3></div>
+                <div class="dnd-border"><h3>Рятівні кидки</h3><div id="saves-list" class="grid grid-cols-2 md:grid-cols-1 gap-1 mt-2"></div></div>
+                <div class="dnd-border"><h3>Навички</h3><div id="skills-list" class="grid grid-cols-1 gap-0.5 mt-2"></div></div>
+            </div>
+
+            <div class="md:col-span-6 space-y-4">
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="dnd-border text-center"><input type="number" id="ac" oninput="window.upd('ac')" class="text-2xl md:text-3xl font-bold"><h3>КО</h3></div>
+                    <div class="dnd-border text-center"><input type="number" id="init" oninput="window.upd('init')" class="text-2xl md:text-3xl font-bold"><h3>Ініц.</h3></div>
+                    <div class="dnd-border text-center"><input type="number" id="speed" oninput="window.upd('speed')" class="text-2xl md:text-3xl font-bold"><h3>Шв.</h3></div>
+                </div>
+                <div class="dnd-border min-h-[200px] flex flex-col">
+                    <h3>Зброя та Атаки</h3>
+                    <div id="atk-list" class="space-y-1 my-2 flex-grow"></div>
+                    <div class="flex flex-col gap-1 pt-2 border-t mt-auto bg-gray-50 p-2">
+                        <div class="flex gap-1">
+                            <input type="text" id="atk-n" placeholder="Зброя" class="text-xs border border-gray-300 !important px-1 w-1/2">
+                            <input type="text" id="atk-d" placeholder="Урон" class="text-xs border border-gray-300 !important px-1 w-1/2">
+                        </div>
+                        <button onclick="window.addItem('attacks', 'atk')" class="bg-black text-white py-1.5 text-[10px] font-bold uppercase">Додати атаку</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-2" class="page hidden">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="dnd-border"><input type="text" id="spAbility" oninput="window.upd('spAbility')"><h3>Хар-ка</h3></div>
+            <div class="dnd-border"><input type="number" id="spDC" oninput="window.upd('spDC')"><h3>Складність DC</h3></div>
+            <div class="dnd-border"><input type="text" id="spBonus" oninput="window.upd('spBonus')"><h3>Бонус атаки</h3></div>
+        </div>
+        <div id="spell-levels-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+        <div class="dnd-border mt-6 bg-zinc-50">
+            <h3>Додати заклинання</h3>
+            <div class="flex flex-col gap-2 mt-2 p-2">
+                <div class="flex gap-2">
+                    <select id="sp-lvl-sel" class="border border-black !important text-xs px-2 w-20">
+                        <option value="0">0</option>
+                        <script>for(let i=1;i<=9;i++) document.write(`<option value="${i}">${i}</option>`)</script>
+                    </select>
+                    <input type="text" id="sp-n" placeholder="Назва закляття" class="border border-gray-300 !important text-xs px-2 text-left w-full">
+                </div>
+                <textarea id="sp-d" placeholder="Опис..." class="border border-gray-300 !important text-xs p-2 text-left w-full h-16 bg-white"></textarea>
+                <button onclick="window.addItem('spells', 'sp')" class="bg-black text-white py-2 text-[10px] font-bold uppercase">Зберегти закляття</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-3" class="page hidden">
+        <div class="flex flex-col md:grid md:grid-cols-12 gap-4">
+            <div class="flex gap-2 md:flex-col md:col-span-3">
+                <div class="flex-1 dnd-border text-yellow-700"><h3>Золото</h3><input type="number" id="gp" oninput="window.upd('gp')" class="text-xl font-bold"></div>
+                <div class="flex-1 dnd-border text-zinc-500"><h3>Срібло</h3><input type="number" id="sp" oninput="window.upd('sp')" class="text-xl"></div>
+                <div class="flex-1 dnd-border text-zinc-500"><h3>Мідь</h3><input type="number" id="cp" oninput="window.upd('cp')" class="text-xl"></div>
+            </div>
+            <div class="md:col-span-9 dnd-border min-h-[300px] flex flex-col">
+                <h3>Рюкзак</h3>
+                <div id="inv-list" class="p-2 space-y-1 flex-grow"></div>
+                <div class="p-3 border-t bg-white flex flex-col gap-2">
+                    <div class="flex gap-2">
+                        <input type="text" id="it-n" placeholder="Предмет" class="w-1/3 border border-gray-300 !important px-2 text-left text-xs">
+                        <input type="text" id="it-d" placeholder="Опис" class="w-2/3 border border-gray-300 !important px-2 text-left text-xs">
+                    </div>
+                    <button onclick="window.addItem('inventory', 'it')" class="bg-black text-white py-2 text-xs font-bold uppercase">Покласти в рюкзак</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="desc-modal" class="modal" onclick="this.style.display='none'">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h2 id="modal-title" class="text-xl md:text-2xl font-bold border-b-2 border-black mb-4 uppercase text-red-900"></h2>
+        <p id="modal-body" class="text-base italic leading-relaxed"></p>
+        <button onclick="document.getElementById('desc-modal').style.display='none'" class="mt-6 w-full bg-black text-white py-3 font-bold uppercase text-xs">Закрити</button>
+    </div>
+</div>
+
+<script>
+    const DB_URL = "https://dndcharactersheet-7bcf2-default-rtdb.europe-west1.firebasedatabase.app";
+    const stats = ["str", "dex", "con", "int", "wis", "cha"];
+    const skills = [
+        {n:"Атлетика", s:"str"}, {n:"Акробатика", s:"dex"}, {n:"Спритність рук", s:"dex"}, {n:"Прихованість", s:"dex"},
+        {n:"Магія", s:"int"}, {n:"Історія", s:"int"}, {n:"Аналіз", s:"int"}, {n:"Природа", s:"int"}, {n:"Релігія", s:"int"},
+        {n:"Проникливість", s:"wis"}, {n:"Медицина", s:"wis"}, {n:"Уважність", s:"wis"}, {n:"Виживання", s:"wis"},
+        {n:"Залякування", s:"cha"}, {n:"Обман", s:"cha"}, {n:"Виступ", s:"cha"}, {n:"Переконання", s:"cha"}
+    ];
+
+    const emptyChar = () => ({
+        name: "Новий Герой", class_lvl: "", race: "", alignment: "",
+        stats: {str:10, dex:10, con:10, int:10, wis:10, cha:10},
+        profSaves: [], profSkills: [], inventory: [], spells: [], attacks: [],
+        prof: 2, ac: 10, init: 0, speed: 30, curHP: 10, maxHP: 10, tempHP: 0,
+        gp: 0, sp: 0, spAbility: "INT", spDC: 8, spBonus: 0,
+        spellConfig: [0,0,0,0,0,0,0,0,0], 
+        usedSlots: [[],[],[],[],[],[],[],[],[]]
+    });
+
+    let state = JSON.parse(localStorage.getItem('dnd_v5_local')) || { chars: [emptyChar()], activeChar: 0 };
+    window.saveToStorage = () => localStorage.setItem('dnd_v5_local', JSON.stringify(state));
+
+    window.tglSlot = (lvlIdx, slotIdx) => {
+        const c = state.chars[state.activeChar];
+        if(!c.usedSlots[lvlIdx]) c.usedSlots[lvlIdx] = [];
+        c.usedSlots[lvlIdx][slotIdx] = !c.usedSlots[lvlIdx][slotIdx];
+        window.saveToStorage();
+        window.renderAll();
+    };
+
+    window.updSpellCfg = (lvlIdx, val) => {
+        state.chars[state.activeChar].spellConfig[lvlIdx] = parseInt(val) || 0;
+        window.saveToStorage();
+        window.renderAll();
+    };
+
+    window.longRest = () => { 
+        if(confirm("Відновити HP та всі комірки заклинань?")) {
+            const c = state.chars[state.activeChar]; 
+            c.curHP = c.maxHP; 
+            c.usedSlots = [[],[],[],[],[],[],[],[],[]];
+            window.renderAll(); 
+            window.saveToStorage(); 
+        }
+    };
+
+    window.renderAll = () => {
+        const c = state.chars[state.activeChar];
+        document.getElementById('char-selector').innerHTML = state.chars.map((char, i) => 
+            `<div class="char-tab ${i===state.activeChar?'active':''}" onclick="window.switchChar(${i})">
+                ${char.name || '---'}
+                <span class="ml-2 text-red-500 font-bold px-1" onclick="window.delChar(${i}, event)">×</span>
+            </div>`
+        ).join('');
+
+        const fields = ['name','class_lvl','race','alignment','prof','ac','init','speed','curHP','maxHP','tempHP','gp','sp','spAbility','spDC','spBonus'];
+        fields.forEach(f => { if(document.getElementById(f)) document.getElementById(f).value = c[f] || 0; });
+
+        document.getElementById('hp-bar-fill').style.width = Math.min(100, (c.curHP / c.maxHP) * 100) + '%';
+        
+        document.getElementById('stats-container').innerHTML = stats.map(s => {
+            const mod = Math.floor((c.stats[s]-10)/2);
+            return `<div class="stat-box"><h3>${s.toUpperCase()}</h3><div class="mod-val">${mod>=0?'+':''}${mod}</div><input type="number" value="${c.stats[s]}" oninput="window.updStat('${s}', this.value)" class="base-val"></div>`;
+        }).join('');
+
+        const p = parseInt(c.prof) || 0;
+        const renderList = (id, items, toggleFn, isSkill) => {
+            document.getElementById(id).innerHTML = items.map(item => {
+                const name = isSkill ? item.n : item;
+                const isP = isSkill ? c.profSkills.includes(name) : c.profSaves.includes(name);
+                const statVal = isSkill ? c.stats[item.s] : c.stats[item];
+                const mod = Math.floor((statVal-10)/2) + (isP ? p : 0);
+                return `<div class="flex items-center gap-2 cursor-pointer py-0.5" onclick="window.${toggleFn}('${name}')">
+                    <div class="dot ${isP?'active':''}"></div> <span class="font-bold w-6 text-center text-[10px] border-b border-black/20">${mod>=0?'+':''}${mod}</span> 
+                    <span class="${isSkill?'text-[10px]':'uppercase text-[10px]'}">${name}</span>
+                </div>`;
+            }).join('');
+        };
+        renderList('saves-list', stats, 'tglSave', false);
+        renderList('skills-list', skills, 'tglSkill', true);
+
+        const renderGeneric = (list, id, type) => {
+            document.getElementById(id).innerHTML = list.map((item, i) => `
+                <div class="flex justify-between items-center border-b py-1 hover:bg-black/5 px-2">
+                    <span class="cursor-help font-bold text-[11px]" onclick="window.showDesc('${item.n}', '${item.d}')">${item.n}</span>
+                    <span class="text-red-400 text-lg cursor-pointer px-2" onclick="window.delGeneric('${type}', ${i})">×</span>
+                </div>`).join('');
+        };
+        renderGeneric(c.attacks, 'atk-list', 'attacks');
+        renderGeneric(c.inventory, 'inv-list', 'inventory');
+
+        let spHtml = '';
+        for(let i=0; i<=9; i++) {
+            const lvlSpells = c.spells.filter(s => parseInt(s.l) === i);
+            const isNotCantrip = i > 0;
+            const slotCount = isNotCantrip ? (c.spellConfig[i-1] || 0) : 0;
+            
+            let slotsHtml = '';
+            if(isNotCantrip) {
+                for(let s=0; s<slotCount; s++) {
+                    const isUsed = c.usedSlots[i-1] && c.usedSlots[i-1][s];
+                    slotsHtml += `<div class="slot-box ${isUsed?'used':''}" onclick="window.tglSlot(${i-1}, ${s})"></div>`;
+                }
+            }
+
+            spHtml += `<div class="dnd-border">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="border-none m-0">${i==0?'Фокуси':i+' Рівень'}</h3>
+                    ${isNotCantrip ? `
+                        <div class="flex items-center gap-1">
+                            <div class="flex flex-wrap max-w-[100px] justify-end">${slotsHtml}</div>
+                            <input type="number" value="${slotCount}" oninput="window.updSpellCfg(${i-1}, this.value)" class="w-8 border-b border-black text-xs font-bold">
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="text-[10px] space-y-1">
+                    ${lvlSpells.map(s => `<div class="flex justify-between border-b pb-1"><span class="cursor-help font-bold" onclick="window.showDesc('${s.n}', '${s.d}')">${s.n}</span><span onclick="window.delSpell(${c.spells.indexOf(s)})" class="text-red-300 cursor-pointer text-lg leading-none">×</span></div>`).join('')}
+                </div>
+            </div>`;
+        }
+        document.getElementById('spell-levels-grid').innerHTML = spHtml;
+    };
+
+    window.upd = (f) => { state.chars[state.activeChar][f] = document.getElementById(f).value; window.saveToStorage(); if(['name','curHP','maxHP','tempHP'].includes(f)) window.renderAll(); };
+    window.updStat = (k, v) => { state.chars[state.activeChar].stats[k] = parseInt(v) || 10; window.renderAll(); window.saveToStorage(); };
+    window.tglSave = (k) => { const s = state.chars[state.activeChar].profSaves; state.chars[state.activeChar].profSaves = s.includes(k) ? s.filter(x=>x!==k) : [...s, k]; window.renderAll(); window.saveToStorage(); };
+    window.tglSkill = (n) => { const s = state.chars[state.activeChar].profSkills; state.chars[state.activeChar].profSkills = s.includes(n) ? s.filter(x=>x!==n) : [...s, n]; window.renderAll(); window.saveToStorage(); };
+    window.addItem = (type, pref) => {
+        const n = document.getElementById(pref+'-n').value;
+        const d = document.getElementById(pref+'-d').value;
+        const l = document.getElementById('sp-lvl-sel')?.value || 0;
+        if(n) { state.chars[state.activeChar][type].push({n,d,l}); document.getElementById(pref+'-n').value = ''; if(document.getElementById(pref+'-d')) document.getElementById(pref+'-d').value = ''; window.renderAll(); window.saveToStorage(); }
+    };
+    
+    // ДОДАНО ПІДТВЕРДЖЕННЯ ВИДАЛЕННЯ ТУТ
+    window.delGeneric = (t, i) => { 
+        const item = state.chars[state.activeChar][t][i];
+        if(confirm(`Видалити "${item.n}"?`)) {
+            state.chars[state.activeChar][t].splice(i, 1); 
+            window.renderAll(); 
+            window.saveToStorage(); 
+        }
+    };
+    
+    window.delSpell = (i) => { 
+        const spell = state.chars[state.activeChar].spells[i];
+        if(confirm(`Видалити заклинання "${spell.n}"?`)) {
+            state.chars[state.activeChar].spells.splice(i, 1); 
+            window.renderAll(); 
+            window.saveToStorage(); 
+        }
+    };
+
+    window.calcHP = (dir) => {
+        const c = state.chars[state.activeChar];
+        const val = parseInt(document.getElementById('hp-input').value) || 0;
+        c.curHP = dir === 1 ? Math.min(c.maxHP, parseInt(c.curHP) + val) : Math.max(0, parseInt(c.curHP) - val);
+        document.getElementById('hp-input').value = ''; window.renderAll(); window.saveToStorage();
+    };
+    window.showDesc = (t, d) => { document.getElementById('modal-title').innerText = t; document.getElementById('modal-body').innerText = d || 'Немає опису...'; document.getElementById('desc-modal').style.display = 'flex'; };
+    window.showPage = (p) => { document.querySelectorAll('.page').forEach(el => el.classList.add('hidden')); document.getElementById(`page-${p}`).classList.remove('hidden'); [1,2,3].forEach(i => document.getElementById(`btn-p${i}`).classList.toggle('active', i === p)); };
+    window.switchChar = (i) => { state.activeChar = i; window.renderAll(); };
+    window.addNewChar = () => { state.chars.push(emptyChar()); state.activeChar = state.chars.length - 1; window.renderAll(); window.saveToStorage(); };
+    window.delChar = (i, e) => { e.stopPropagation(); if(state.chars.length > 1 && confirm("Видалити персонажа повністю?")) { state.chars.splice(i, 1); state.activeChar = 0; window.renderAll(); window.saveToStorage(); } };
+
+    window.renderAll();
+    window.showPage(1);
+</script>
+</body>
+</html>

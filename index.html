@@ -50,7 +50,7 @@
         <input type="text" id="fb-key" placeholder="напр: my_party_2026" class="bg-zinc-800 text-white border border-zinc-700 !important w-full sm:w-48 text-left px-3 py-1.5 rounded focus:border-emerald-500">
     </div>
     <div class="flex gap-2 w-full sm:w-auto sm:ml-auto">
-        <button onclick="window.cloudAction('SAVE')" class="flex-1 sm:flex-none bg-blue-700 hover:bg-blue-600 px-4 py-1.5 rounded font-bold uppercase transition">Хмара 💾</button>
+        <button onclick="window.cloudAction('SAVE')" class="flex-1 sm:flex-none bg-blue-700 hover:bg-blue-600 px-4 py-1.5 rounded font-bold uppercase transition">Зберегти</button>
         <button onclick="window.cloudAction('LOAD')" class="flex-1 sm:flex-none bg-emerald-700 hover:bg-emerald-600 px-4 py-1.5 rounded font-bold uppercase transition">Завантажити</button>
     </div>
 </div>
@@ -253,27 +253,35 @@
             } catch (e) { alert("Помилка мережі"); }
         } 
         
-        if (type === 'LOAD') {
-            try {
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data) {
-                    state = data;
-                    window.renderAll();
-                    window.saveToStorage();
-                    alert("Дані успішно завантажено!");
-                } else alert("Нічого не знайдено за цим ID");
-            } catch (e) { alert("Помилка завантаження"); }
-        }
-    };
+       if (type === 'LOAD') {
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data) {
+            // Важливо: переконуємось, що масиви існують для кожного персонажа
+            data.chars = data.chars.map(c => ({
+                ...emptyChar(), // Беремо дефолтну структуру
+                ...c            // Накладаємо збережені дані поверх
+            }));
+            state = data;
+            window.renderAll();
+            window.saveToStorage();
+            alert("Дані успішно завантажено!");
+        } else alert("Нічого не знайдено за цим ID");
+    } catch (e) { alert("Помилка завантаження"); }
+}
+};
 
-    window.tglSlot = (lvlIdx, slotIdx) => {
-        const c = state.chars[state.activeChar];
-        if(!c.usedSlots[lvlIdx]) c.usedSlots[lvlIdx] = [];
-        c.usedSlots[lvlIdx][slotIdx] = !c.usedSlots[lvlIdx][slotIdx];
-        window.saveToStorage();
-        window.renderAll();
-    };
+   window.tglSlot = (lvlIdx, slotIdx) => {
+    const c = state.chars[state.activeChar];
+    if(!c.usedSlots) c.usedSlots = [[],[],[],[],[],[],[],[],[]]; // Захист від порожнечі
+    if(!c.usedSlots[lvlIdx]) c.usedSlots[lvlIdx] = [];
+    
+    c.usedSlots[lvlIdx][slotIdx] = !c.usedSlots[lvlIdx][slotIdx];
+    
+    window.saveToStorage(); // Зберігає локально
+    window.renderAll();     // Оновлює екран
+};
 
     window.updSpellCfg = (lvlIdx, val) => {
         state.chars[state.activeChar].spellConfig[lvlIdx] = parseInt(val) || 0;

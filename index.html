@@ -32,13 +32,34 @@
         .slot-box { width: 14px; height: 14px; border: 1px solid black; border-radius: 2px; cursor: pointer; display: inline-block; margin-right: 3px; background: white; transition: background 0.2s; }
         .slot-box.used { background: var(--dnd-red); border-color: var(--dnd-red); }
 
+        /* Modals */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
+        .modal.flex { display: flex; }
         .modal-content { background: var(--parchment); padding: 20px; max-width: 500px; width: 100%; border: 3px solid black; box-shadow: 0 0 30px rgba(0,0,0,0.5); overflow-y: auto; max-height: 90vh; }
         
         .char-tab { padding: 6px 12px; border: 1px solid black; background: #ddd; cursor: pointer; border-radius: 8px 8px 0 0; font-family: 'Marcellus', serif; font-size: 10px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
         .char-tab.active { background: var(--parchment); border-bottom: 2px solid var(--parchment); font-weight: bold; }
         .add-char-btn { padding: 6px 15px; background: #222; color: #00ff88; border-radius: 8px 8px 0 0; font-weight: bold; cursor: pointer; border: 1px solid black; border-bottom: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* Edit/action buttons in lists */
+        .item-edit-btn { color: #1d4ed8; cursor: pointer; font-size: 14px; padding: 0 4px; line-height: 1; flex-shrink: 0; }
+        .item-del-btn  { color: #ef4444; cursor: pointer; font-size: 20px; padding: 0 4px; line-height: 1; flex-shrink: 0; }
+        .item-name-btn { cursor: pointer; font-weight: bold; font-size: 11px; flex-grow: 1; text-align: left; }
+        .item-name-btn:hover { color: #9b2226; }
+
+        /* Auto-calc badge */
+        .auto-badge { font-size: 9px; background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; border-radius: 3px; padding: 0 4px; margin-left: 4px; }
+
+        /* Edit modal inputs */
+        #edit-modal input, #edit-modal textarea, #edit-modal select {
+            background: white !important;
+            border: 1px solid #aaa !important;
+            border-radius: 4px;
+            padding: 4px 8px;
+            text-align: left;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -76,7 +97,7 @@
 
     <!-- Health Section -->
     <div class="health-container shadow-md">
-        <div class="hp-progress-bg"><div id="hp-bar-fill" class="hp-fill"></div><div id="hp-temp-fill" class="hp-temp-fill"></div></div>
+        <div class="hp-progress-bg"><div id="hp-bar-fill" class="hp-fill"></div><div id="hp-temp-fill-bar" class="hp-temp-fill"></div></div>
         <div class="flex flex-col md:grid md:grid-cols-12 p-2 md:p-3 items-center gap-4">
             <div class="flex w-full md:col-span-5 border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0">
                 <div class="flex-1 text-center">
@@ -145,24 +166,40 @@
                     </div>
                 </div>
                 <div class="dnd-border min-h-[200px] flex flex-col mt-4">
-                <h3>Риси та Особливості</h3>
-                <div id="traits-list" class="space-y-1 my-2 flex-grow"></div>
-                <div class="flex flex-col gap-1 pt-2 border-t mt-auto bg-gray-50 p-2">
-                    <input type="text" id="trait-n" placeholder="Назва риси" class="text-xs border border-gray-300 !important px-1 w-full mb-1">
-                    <textarea id="trait-d" placeholder="Опис..." class="text-xs border border-gray-300 !important px-1 w-full h-16 bg-white mb-1"></textarea>
-                    <button onclick="window.addItem('traits', 'trait')" class="bg-black text-white py-1.5 text-[10px] font-bold uppercase">Додайте рису</button>
+                    <h3>Риси та Особливості</h3>
+                    <div id="traits-list" class="space-y-1 my-2 flex-grow"></div>
+                    <div class="flex flex-col gap-1 pt-2 border-t mt-auto bg-gray-50 p-2">
+                        <input type="text" id="trait-n" placeholder="Назва риси" class="text-xs border border-gray-300 !important px-1 w-full mb-1">
+                        <textarea id="trait-d" placeholder="Опис..." class="text-xs border border-gray-300 !important px-1 w-full h-16 bg-white mb-1"></textarea>
+                        <button onclick="window.addItem('traits', 'trait')" class="bg-black text-white py-1.5 text-[10px] font-bold uppercase">Додайте рису</button>
+                    </div>
                 </div>
             </div>
-</div>
         </div>
     </div>
 
     <!-- Page 2: Spells -->
     <div id="page-2" class="page hidden">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="dnd-border"><input type="text" id="spAbility" oninput="window.upd('spAbility')"><h3>Хар-ка</h3></div>
-            <div class="dnd-border"><input type="number" id="spDC" oninput="window.upd('spDC')"><h3>Складність DC</h3></div>
-            <div class="dnd-border"><input type="text" id="spBonus" oninput="window.upd('spBonus')"><h3>Бонус атаки</h3></div>
+            <div class="dnd-border">
+                <select id="spAbility" onchange="window.upd('spAbility')" class="font-bold text-base">
+                    <option value="str">СИЛ</option>
+                    <option value="dex">СПР</option>
+                    <option value="con">ВИТ</option>
+                    <option value="int">ІНТ</option>
+                    <option value="wis">МДР</option>
+                    <option value="cha">ХАР</option>
+                </select>
+                <h3>Хар-ка магії</h3>
+            </div>
+            <div class="dnd-border text-center">
+                <div id="spDC-display" class="text-2xl font-bold"></div>
+                <h3>Складність DC <span class="auto-badge">авто</span></h3>
+            </div>
+            <div class="dnd-border text-center">
+                <div id="spBonus-display" class="text-2xl font-bold"></div>
+                <h3>Бонус атаки <span class="auto-badge">авто</span></h3>
+            </div>
         </div>
         <div id="spell-levels-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
         <div class="dnd-border mt-6 bg-zinc-50">
@@ -170,8 +207,8 @@
             <div class="flex flex-col gap-2 mt-2 p-2">
                 <div class="flex gap-2">
                     <select id="sp-lvl-sel" class="border border-black !important text-xs px-2 w-20">
-                        <option value="0">0</option>
-                        <script>for(let i=1;i<=9;i++) document.write(`<option value="${i}">${i}</option>`)</script>
+                        <option value="0">Фокус</option>
+                        <script>for(let i=1;i<=9;i++) document.write(`<option value="${i}">${i} рів.</option>`)</script>
                     </select>
                     <input type="text" id="sp-n" placeholder="Назва закляття" class="border border-gray-300 !important text-xs px-2 text-left w-full">
                 </div>
@@ -186,7 +223,7 @@
         <div class="flex flex-col md:grid md:grid-cols-12 gap-4">
             <div class="flex gap-2 md:flex-col md:col-span-3">
                 <div class="flex-1 dnd-border text-yellow-700"><h3>Золото</h3><input type="number" id="gp" oninput="window.upd('gp')" class="text-xl font-bold"></div>
-                <div class="flex-1 dnd-border text-zinc-500"><h3>Срібло</h3><input type="number" id="sp" oninput="window.upd('sp')" class="text-xl"></div>
+                <div class="flex-1 dnd-border text-zinc-500"><h3>Срібло</h3><input type="number" id="sp-coin" oninput="window.updCoin('sp')" class="text-xl"></div>
                 <div class="flex-1 dnd-border text-zinc-500"><h3>Мідь</h3><input type="number" id="cp" oninput="window.upd('cp')" class="text-xl"></div>
             </div>
             <div class="md:col-span-9 dnd-border min-h-[300px] flex flex-col">
@@ -204,21 +241,51 @@
     </div>
 </div>
 
-<!-- Modal -->
-<div id="desc-modal" class="modal" onclick="this.style.display='none'">
+<!-- View Description Modal -->
+<div id="desc-modal" class="modal" onclick="this.classList.remove('flex')">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h2 id="modal-title" class="text-xl md:text-2xl font-bold border-b-2 border-black mb-4 uppercase text-red-900"></h2>
-        <p id="modal-body" class="text-base italic leading-relaxed"></p>
-        <button onclick="document.getElementById('desc-modal').style.display='none'" class="mt-6 w-full bg-black text-white py-3 font-bold uppercase text-xs">Закрити</button>
+        <p id="modal-body" class="text-base italic leading-relaxed whitespace-pre-wrap"></p>
+        <button onclick="document.getElementById('desc-modal').classList.remove('flex')" class="mt-6 w-full bg-black text-white py-3 font-bold uppercase text-xs">Закрити</button>
+    </div>
+</div>
+
+<!-- Edit Item Modal -->
+<div id="edit-modal" class="modal" onclick="this.classList.remove('flex')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h2 class="text-lg font-bold border-b-2 border-black mb-4 uppercase text-blue-900">✏️ Редагування</h2>
+        <input type="hidden" id="edit-type">
+        <input type="hidden" id="edit-index">
+        <div class="flex flex-col gap-3">
+            <div id="edit-lvl-row" class="hidden">
+                <label class="text-xs uppercase font-bold block mb-1">Рівень заклинання</label>
+                <select id="edit-lvl" class="w-full">
+                    <option value="0">Фокус</option>
+                    <script>for(let i=1;i<=9;i++) document.write(`<option value="${i}">${i} рівень</option>`)</script>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs uppercase font-bold block mb-1">Назва</label>
+                <input type="text" id="edit-name" placeholder="Назва">
+            </div>
+            <div>
+                <label class="text-xs uppercase font-bold block mb-1">Опис</label>
+                <textarea id="edit-desc" placeholder="Опис..." class="h-28 resize-y"></textarea>
+            </div>
+            <div class="flex gap-2 mt-2">
+                <button onclick="window.saveEdit()" class="flex-1 bg-blue-800 text-white py-2 font-bold uppercase text-xs">Зберегти</button>
+                <button onclick="document.getElementById('edit-modal').classList.remove('flex')" class="flex-1 bg-gray-400 text-white py-2 font-bold uppercase text-xs">Скасувати</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- ВСТАВТЕ СВІЙ URL ТУТ ---
     const DB_URL = "https://dndcharactersheet-7bcf2-default-rtdb.europe-west1.firebasedatabase.app/.json";
 
-    const stats = ["str", "dex", "con", "int", "wis", "cha"];
-    const skills = [
+    const STATS = ["str", "dex", "con", "int", "wis", "cha"];
+    const STAT_LABELS = {str:"СИЛ", dex:"СПР", con:"ВИТ", int:"ІНТ", wis:"МДР", cha:"ХАР"};
+    const SKILLS = [
         {n:"Атлетика", s:"str"}, {n:"Акробатика", s:"dex"}, {n:"Спритність рук", s:"dex"}, {n:"Прихованість", s:"dex"},
         {n:"Магія", s:"int"}, {n:"Історія", s:"int"}, {n:"Аналіз", s:"int"}, {n:"Природа", s:"int"}, {n:"Релігія", s:"int"},
         {n:"Проникливість", s:"wis"}, {n:"Медицина", s:"wis"}, {n:"Уважність", s:"wis"}, {n:"Виживання", s:"wis"},
@@ -230,58 +297,64 @@
         stats: {str:10, dex:10, con:10, int:10, wis:10, cha:10},
         profSaves: [], profSkills: [], inventory: [], spells: [], attacks: [], traits: [],
         prof: 2, ac: 10, init: 0, speed: 30, curHP: 10, maxHP: 10, tempHP: 0,
-        gp: 0, sp: 0, spAbility: "INT", spDC: 8, spBonus: 0,
-        spellConfig: [0,0,0,0,0,0,0,0,0], 
+        gp: 0, sp: 0, cp: 0, spAbility: "int",
+        spellConfig: [0,0,0,0,0,0,0,0,0],
         usedSlots: [[],[],[],[],[],[],[],[],[]]
     });
 
     let state = JSON.parse(localStorage.getItem('dnd_v5_local')) || { chars: [emptyChar()], activeChar: 0 };
     window.saveToStorage = () => localStorage.setItem('dnd_v5_local', JSON.stringify(state));
 
-    // Cloud Logic
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    function getMod(statVal) { return Math.floor(((parseInt(statVal) || 10) - 10) / 2); }
+
+    function calcSpellStats(c) {
+        const ability = c.spAbility || 'int';
+        const mod = getMod(c.stats[ability]);
+        const prof = parseInt(c.prof) || 0;
+        const dc = 8 + prof + mod;
+        const bonus = prof + mod;
+        return { dc, bonus: (bonus >= 0 ? '+' : '') + bonus };
+    }
+
+    // ── Cloud ──────────────────────────────────────────────────────────────────
+
     window.cloudAction = async (type) => {
         const key = document.getElementById('fb-key').value.trim();
         if (!key) return alert("Введіть Ключ ID!");
-        if (DB_URL.includes("your-project-id")) return alert("Спочатку вставте свій URL від Firebase у код!");
-        
         const url = DB_URL.replace(".json", `/${key}.json`);
-
         if (type === 'SAVE') {
             try {
                 const res = await fetch(url, { method: 'PUT', body: JSON.stringify(state) });
                 if (res.ok) alert("Дані збережено в хмарі!");
-            } catch (e) { alert("Помилка мережі"); }
-        } 
-        
-       if (type === 'LOAD') {
-    try {
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data) {
-            // Важливо: переконуємось, що масиви існують для кожного персонажа
-            data.chars = data.chars.map(c => ({
-                ...emptyChar(), // Беремо дефолтну структуру
-                ...c            // Накладаємо збережені дані поверх
-            }));
-            state = data;
-            window.renderAll();
-            window.saveToStorage();
-            alert("Дані успішно завантажено!");
-        } else alert("Нічого не знайдено за цим ID");
-    } catch (e) { alert("Помилка завантаження"); }
-}
-};
+            } catch { alert("Помилка мережі"); }
+        }
+        if (type === 'LOAD') {
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data) {
+                    data.chars = data.chars.map(c => ({ ...emptyChar(), ...c }));
+                    state = data;
+                    window.renderAll();
+                    window.saveToStorage();
+                    alert("Дані успішно завантажено!");
+                } else alert("Нічого не знайдено за цим ID");
+            } catch { alert("Помилка завантаження"); }
+        }
+    };
 
-   window.tglSlot = (lvlIdx, slotIdx) => {
-    const c = state.chars[state.activeChar];
-    if(!c.usedSlots) c.usedSlots = [[],[],[],[],[],[],[],[],[]]; // Захист від порожнечі
-    if(!c.usedSlots[lvlIdx]) c.usedSlots[lvlIdx] = [];
-    
-    c.usedSlots[lvlIdx][slotIdx] = !c.usedSlots[lvlIdx][slotIdx];
-    
-    window.saveToStorage(); // Зберігає локально
-    window.renderAll();     // Оновлює екран
-};
+    // ── Spell slots ────────────────────────────────────────────────────────────
+
+    window.tglSlot = (lvlIdx, slotIdx) => {
+        const c = state.chars[state.activeChar];
+        if (!c.usedSlots) c.usedSlots = [[],[],[],[],[],[],[],[],[]];
+        if (!c.usedSlots[lvlIdx]) c.usedSlots[lvlIdx] = [];
+        c.usedSlots[lvlIdx][slotIdx] = !c.usedSlots[lvlIdx][slotIdx];
+        window.saveToStorage();
+        window.renderAll();
+    };
 
     window.updSpellCfg = (lvlIdx, val) => {
         state.chars[state.activeChar].spellConfig[lvlIdx] = parseInt(val) || 0;
@@ -289,144 +362,303 @@
         window.renderAll();
     };
 
-    window.longRest = () => { 
-        if(confirm("Відпочити? HP та комірки відновляться.")) {
-            const c = state.chars[state.activeChar]; 
-            c.curHP = c.maxHP; 
+    // ── Long rest ──────────────────────────────────────────────────────────────
+
+    window.longRest = () => {
+        if (confirm("Відпочити? HP та комірки відновляться.")) {
+            const c = state.chars[state.activeChar];
+            c.curHP = c.maxHP;
             c.usedSlots = [[],[],[],[],[],[],[],[],[]];
-            window.renderAll(); window.saveToStorage(); 
+            window.renderAll();
+            window.saveToStorage();
         }
     };
 
+    // ── Show desc modal (safe — reads from JS array, not HTML attributes) ──────
+
+    window.showDesc = (type, index) => {
+        const c = state.chars[state.activeChar];
+        const item = c[type][index];
+        if (!item) return;
+        document.getElementById('modal-title').textContent = item.n;
+        document.getElementById('modal-body').textContent = item.d || 'Немає опису...';
+        document.getElementById('desc-modal').classList.add('flex');
+    };
+
+    // ── Edit modal ─────────────────────────────────────────────────────────────
+
+    window.openEdit = (type, index) => {
+        const c = state.chars[state.activeChar];
+        const item = c[type][index];
+        if (!item) return;
+        document.getElementById('edit-type').value = type;
+        document.getElementById('edit-index').value = index;
+        document.getElementById('edit-name').value = item.n || '';
+        document.getElementById('edit-desc').value = item.d || '';
+        const lvlRow = document.getElementById('edit-lvl-row');
+        if (type === 'spells') {
+            lvlRow.classList.remove('hidden');
+            document.getElementById('edit-lvl').value = item.l ?? 0;
+        } else {
+            lvlRow.classList.add('hidden');
+        }
+        document.getElementById('edit-modal').classList.add('flex');
+    };
+
+    window.saveEdit = () => {
+        const type  = document.getElementById('edit-type').value;
+        const index = parseInt(document.getElementById('edit-index').value);
+        const c = state.chars[state.activeChar];
+        c[type][index].n = document.getElementById('edit-name').value;
+        c[type][index].d = document.getElementById('edit-desc').value;
+        if (type === 'spells') c[type][index].l = document.getElementById('edit-lvl').value;
+        document.getElementById('edit-modal').classList.remove('flex');
+        window.renderAll();
+        window.saveToStorage();
+    };
+
+    // ── Render ─────────────────────────────────────────────────────────────────
+
     window.renderAll = () => {
         const c = state.chars[state.activeChar];
-        document.getElementById('char-selector').innerHTML = state.chars.map((char, i) => 
+
+        // Char tabs
+        document.getElementById('char-selector').innerHTML = state.chars.map((ch, i) =>
             `<div class="char-tab ${i===state.activeChar?'active':''}" onclick="window.switchChar(${i})">
-                ${char.name || '---'}
+                ${ch.name || '---'}
                 <span class="ml-2 text-red-500 font-bold px-1" onclick="window.delChar(${i}, event)">×</span>
             </div>`
         ).join('');
 
-        const fields = ['name','class_lvl','race','alignment','prof','ac','init','speed','curHP','maxHP','tempHP','gp','sp','spAbility','spDC','spBonus'];
-        fields.forEach(f => { if(document.getElementById(f)) document.getElementById(f).value = c[f] || 0; });
+        // Simple fields
+        ['name','class_lvl','race','alignment','prof','ac','init','speed','curHP','maxHP','tempHP','gp','cp'].forEach(f => {
+            const el = document.getElementById(f);
+            if (el) el.value = c[f] ?? '';
+        });
+        const spCoin = document.getElementById('sp-coin');
+        if (spCoin) spCoin.value = c.sp ?? 0;
 
-        document.getElementById('hp-bar-fill').style.width = Math.min(100, (c.curHP / c.maxHP) * 100) + '%';
-        
-        document.getElementById('stats-container').innerHTML = stats.map(s => {
-            const mod = Math.floor((c.stats[s]-10)/2);
-            return `<div class="stat-box"><h3>${s.toUpperCase()}</h3><div class="mod-val">${mod>=0?'+':''}${mod}</div><input type="number" value="${c.stats[s]}" oninput="window.updStat('${s}', this.value)" class="base-val"></div>`;
+        // HP bar
+        document.getElementById('hp-bar-fill').style.width = Math.min(100, ((c.curHP||0) / (c.maxHP||1)) * 100) + '%';
+
+        // Spell ability selector
+        const spAbilityEl = document.getElementById('spAbility');
+        if (spAbilityEl) spAbilityEl.value = c.spAbility || 'int';
+
+        // Auto spell DC & bonus
+        const sp = calcSpellStats(c);
+        const dcEl = document.getElementById('spDC-display');
+        const bonusEl = document.getElementById('spBonus-display');
+        if (dcEl) dcEl.textContent = sp.dc;
+        if (bonusEl) bonusEl.textContent = sp.bonus;
+
+        // Ability scores
+        document.getElementById('stats-container').innerHTML = STATS.map(s => {
+            const mod = getMod(c.stats[s]);
+            return `<div class="stat-box">
+                <h3>${STAT_LABELS[s]}</h3>
+                <div class="mod-val">${mod>=0?'+':''}${mod}</div>
+                <input type="number" value="${c.stats[s]}" oninput="window.updStat('${s}', this.value)" class="base-val">
+            </div>`;
         }).join('');
 
         const p = parseInt(c.prof) || 0;
-        const renderList = (id, items, toggleFn, isSkill) => {
-            document.getElementById(id).innerHTML = items.map(item => {
-                const name = isSkill ? item.n : item;
-                const isP = isSkill ? c.profSkills.includes(name) : c.profSaves.includes(name);
-                const statVal = isSkill ? c.stats[item.s] : c.stats[item];
-                const mod = Math.floor((statVal-10)/2) + (isP ? p : 0);
-                return `<div class="flex items-center gap-2 cursor-pointer py-0.5" onclick="window.${toggleFn}('${name}')">
-                    <div class="dot ${isP?'active':''}"></div> <span class="font-bold w-6 text-center text-[10px] border-b border-black/20">${mod>=0?'+':''}${mod}</span> 
-                    <span class="${isSkill?'text-[10px]':'uppercase text-[10px]'}">${name}</span>
-                </div>`;
-            }).join('');
+
+        // Saves
+        document.getElementById('saves-list').innerHTML = STATS.map(s => {
+            const isP = c.profSaves.includes(s);
+            const mod = getMod(c.stats[s]) + (isP ? p : 0);
+            return `<div class="flex items-center gap-2 cursor-pointer py-0.5" onclick="window.tglSave('${s}')">
+                <div class="dot ${isP?'active':''}"></div>
+                <span class="font-bold w-6 text-center text-[10px] border-b border-black/20">${mod>=0?'+':''}${mod}</span>
+                <span class="uppercase text-[10px]">${STAT_LABELS[s]}</span>
+            </div>`;
+        }).join('');
+
+        // Skills
+        document.getElementById('skills-list').innerHTML = SKILLS.map(sk => {
+            const isP = c.profSkills.includes(sk.n);
+            const mod = getMod(c.stats[sk.s]) + (isP ? p : 0);
+            return `<div class="flex items-center gap-2 cursor-pointer py-0.5" onclick="window.tglSkill('${sk.n}')">
+                <div class="dot ${isP?'active':''}"></div>
+                <span class="font-bold w-6 text-center text-[10px] border-b border-black/20">${mod>=0?'+':''}${mod}</span>
+                <span class="text-[10px]">${sk.n}</span>
+            </div>`;
+        }).join('');
+
+        // Generic list renderer — uses data-index, NO text in onclick
+        const renderList = (list, containerId, type) => {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            el.innerHTML = (list || []).map((item, i) =>
+                `<div class="flex justify-between items-center border-b py-1 hover:bg-black/5 px-2 gap-1">
+                    <span class="item-name-btn" data-type="${type}" data-index="${i}">${item.n}</span>
+                    <div class="flex items-center shrink-0">
+                        <span class="item-edit-btn" data-type="${type}" data-index="${i}" title="Редагувати">✏️</span>
+                        <span class="item-del-btn" data-type="${type}" data-index="${i}" title="Видалити">×</span>
+                    </div>
+                </div>`
+            ).join('');
         };
-        renderList('saves-list', stats, 'tglSave', false);
-        renderList('skills-list', skills, 'tglSkill', true);
 
-       const renderGeneric = (list, id, type) => {
-    const target = document.getElementById(id);
-    if (!target) return;
-    
-    target.innerHTML = (list || []).map((item, i) => {
-        // Очищаємо опис від символів, які ламають код (апострофи, лапки, переноси)
-        const safeDesc = (item.d || "")
-            .replace(/'/g, "\\'")     // Екрануємо одинарні лапки
-            .replace(/"/g, "&quot;")  // Замінюємо подвійні лапки
-            .replace(/\n/g, " ")      // Прибираємо переноси рядків
-            .replace(/'/g, "’");     // Замінюємо програмістський апостроф на текстовий
+        renderList(c.attacks, 'atk-list', 'attacks');
+        renderList(c.traits, 'traits-list', 'traits');
+        renderList(c.inventory, 'inv-list', 'inventory');
 
-        return `
-        <div class="flex justify-between items-center border-b py-1 hover:bg-black/5 px-2">
-            <span class="cursor-help font-bold text-[11px] flex-grow hover:text-red-800" 
-                  onclick="window.showDesc('${item.n.replace(/'/g, "\\'")}', '${safeDesc}')">
-                ${item.n}
-            </span>
-            <span class="text-red-400 text-lg cursor-pointer px-2 ml-2" 
-                  onclick="window.delGeneric('${type}', ${i})">×</span>
-        </div>`;
-    }).join('');
-};
-        renderGeneric(c.attacks, 'atk-list', 'attacks');
-        renderGeneric(c.inventory, 'inv-list', 'inventory');
-        renderGeneric(c.traits || [], 'traits-list', 'traits');
-        
-
+        // Spell levels
         let spHtml = '';
-        for(let i=0; i<=9; i++) {
-            const lvlSpells = c.spells.filter(s => parseInt(s.l) === i);
+        for (let i = 0; i <= 9; i++) {
+            const lvlSpells = (c.spells || []).filter(s => parseInt(s.l) === i);
             const isNotCantrip = i > 0;
             const slotCount = isNotCantrip ? (c.spellConfig[i-1] || 0) : 0;
             let slotsHtml = '';
-            if(isNotCantrip) {
-                for(let s=0; s<slotCount; s++) {
+            if (isNotCantrip) {
+                for (let s = 0; s < slotCount; s++) {
                     const isUsed = c.usedSlots[i-1] && c.usedSlots[i-1][s];
                     slotsHtml += `<div class="slot-box ${isUsed?'used':''}" onclick="window.tglSlot(${i-1}, ${s})"></div>`;
                 }
             }
             spHtml += `<div class="dnd-border">
                 <div class="flex justify-between items-center mb-2">
-                    <h3 class="border-none m-0">${i==0?'Фокуси':i+' Рівень'}</h3>
-                    ${isNotCantrip ? `<div class="flex items-center gap-1"><div class="flex flex-wrap max-w-[100px] justify-end">${slotsHtml}</div><input type="number" value="${slotCount}" oninput="window.updSpellCfg(${i-1}, this.value)" class="w-8 border-b border-black text-xs font-bold"></div>` : ''}
+                    <h3 class="border-none m-0">${i===0?'Фокуси':i+' Рівень'}</h3>
+                    ${isNotCantrip ? `<div class="flex items-center gap-1">
+                        <div class="flex flex-wrap max-w-[100px] justify-end">${slotsHtml}</div>
+                        <input type="number" value="${slotCount}" oninput="window.updSpellCfg(${i-1}, this.value)" class="w-8 border-b border-black text-xs font-bold">
+                    </div>` : ''}
                 </div>
-                <div class="text-[10px] space-y-1">
-                    ${lvlSpells.map(s => `<div class="flex justify-between border-b pb-1"><span class="cursor-help font-bold" onclick="window.showDesc('${s.n}', '${s.d}')">${s.n}</span><span onclick="window.delSpell(${c.spells.indexOf(s)})" class="text-red-300 cursor-pointer text-lg leading-none">×</span></div>`).join('')}
+                <div class="text-[10px] space-y-1" data-spell-level="${i}">
+                    ${lvlSpells.map(s => {
+                        const idx = (c.spells || []).indexOf(s);
+                        return `<div class="flex justify-between items-center border-b pb-1 gap-1">
+                            <span class="item-name-btn flex-grow" data-type="spells" data-index="${idx}">${s.n}</span>
+                            <div class="flex items-center shrink-0">
+                                <span class="item-edit-btn" data-type="spells" data-index="${idx}" title="Редагувати">✏️</span>
+                                <span class="item-del-btn" data-type="spells" data-index="${idx}" title="Видалити">×</span>
+                            </div>
+                        </div>`;
+                    }).join('')}
                 </div>
             </div>`;
         }
         document.getElementById('spell-levels-grid').innerHTML = spHtml;
     };
 
-    window.upd = (f) => { state.chars[state.activeChar][f] = document.getElementById(f).value; window.saveToStorage(); if(['name','curHP','maxHP','tempHP'].includes(f)) window.renderAll(); };
-    window.updStat = (k, v) => { state.chars[state.activeChar].stats[k] = parseInt(v) || 10; window.renderAll(); window.saveToStorage(); };
-    window.tglSave = (k) => { const s = state.chars[state.activeChar].profSaves; state.chars[state.activeChar].profSaves = s.includes(k) ? s.filter(x=>x!==k) : [...s, k]; window.renderAll(); window.saveToStorage(); };
-    window.tglSkill = (n) => { const s = state.chars[state.activeChar].profSkills; state.chars[state.activeChar].profSkills = s.includes(n) ? s.filter(x=>x!==n) : [...s, n]; window.renderAll(); window.saveToStorage(); };
-   window.addItem = (type, pref) => {
-    const n = document.getElementById(pref+'-n').value;
-    const d = document.getElementById(pref+'-d').value;
-    // Для заклинань використовуємо рівень, для іншого - 0
-    const l = (pref === 'sp') ? (document.getElementById('sp-lvl-sel')?.value || 0) : 0;
-    
-    if(n) { 
-        // Перевіряємо, чи існує масив у персонажа, якщо ні - створюємо
-        if (!state.chars[state.activeChar][type]) {
-            state.chars[state.activeChar][type] = [];
+    // ── Event delegation for list buttons (no text in attributes = UA-safe) ───
+
+    document.addEventListener('click', (e) => {
+        const nameBtn = e.target.closest('.item-name-btn');
+        const editBtn = e.target.closest('.item-edit-btn');
+        const delBtn  = e.target.closest('.item-del-btn');
+
+        if (nameBtn) {
+            const { type, index } = nameBtn.dataset;
+            window.showDesc(type, parseInt(index));
         }
-        
-        state.chars[state.activeChar][type].push({n, d, l}); 
-        
-        // Очищуємо поля
-        document.getElementById(pref+'-n').value = ''; 
-        if(document.getElementById(pref+'-d')) document.getElementById(pref+'-d').value = ''; 
-        
-        window.renderAll(); 
-        window.saveToStorage(); 
-    }
-};
-    
-    window.delGeneric = (t, i) => { if(confirm("Видалити цей елемент?")) { state.chars[state.activeChar][t].splice(i, 1); window.renderAll(); window.saveToStorage(); } };
-    window.delSpell = (i) => { if(confirm("Видалити заклинання?")) { state.chars[state.activeChar].spells.splice(i, 1); window.renderAll(); window.saveToStorage(); } };
-    
+        if (editBtn) {
+            const { type, index } = editBtn.dataset;
+            window.openEdit(type, parseInt(index));
+        }
+        if (delBtn) {
+            const { type, index } = delBtn.dataset;
+            if (confirm("Видалити цей елемент?")) {
+                state.chars[state.activeChar][type].splice(parseInt(index), 1);
+                window.renderAll();
+                window.saveToStorage();
+            }
+        }
+    });
+
+    // ── Field updates ──────────────────────────────────────────────────────────
+
+    window.upd = (f) => {
+        const el = document.getElementById(f);
+        if (!el) return;
+        state.chars[state.activeChar][f] = el.value;
+        window.saveToStorage();
+        if (['name','curHP','maxHP','tempHP','prof','spAbility'].includes(f)) window.renderAll();
+    };
+
+    window.updCoin = (coin) => {
+        state.chars[state.activeChar][coin] = document.getElementById('sp-coin').value;
+        window.saveToStorage();
+    };
+
+    window.updStat = (k, v) => {
+        state.chars[state.activeChar].stats[k] = parseInt(v) || 10;
+        window.renderAll();
+        window.saveToStorage();
+    };
+
+    window.tglSave = (k) => {
+        const s = state.chars[state.activeChar].profSaves;
+        state.chars[state.activeChar].profSaves = s.includes(k) ? s.filter(x=>x!==k) : [...s, k];
+        window.renderAll(); window.saveToStorage();
+    };
+
+    window.tglSkill = (n) => {
+        const s = state.chars[state.activeChar].profSkills;
+        state.chars[state.activeChar].profSkills = s.includes(n) ? s.filter(x=>x!==n) : [...s, n];
+        window.renderAll(); window.saveToStorage();
+    };
+
+    window.tglInsp = () => {
+        const c = state.chars[state.activeChar];
+        c.inspiration = !c.inspiration;
+        document.getElementById('insp-dot').classList.toggle('active', !!c.inspiration);
+        window.saveToStorage();
+    };
+
+    window.addItem = (type, pref) => {
+        const nEl = document.getElementById(pref+'-n');
+        const dEl = document.getElementById(pref+'-d');
+        const n = nEl ? nEl.value.trim() : '';
+        const d = dEl ? dEl.value.trim() : '';
+        const l = (pref === 'sp') ? (document.getElementById('sp-lvl-sel')?.value || 0) : 0;
+        if (!n) return;
+        if (!state.chars[state.activeChar][type]) state.chars[state.activeChar][type] = [];
+        state.chars[state.activeChar][type].push({ n, d, l });
+        if (nEl) nEl.value = '';
+        if (dEl) dEl.value = '';
+        window.renderAll();
+        window.saveToStorage();
+    };
+
     window.calcHP = (dir) => {
         const c = state.chars[state.activeChar];
         const val = parseInt(document.getElementById('hp-input').value) || 0;
-        c.curHP = dir === 1 ? Math.min(c.maxHP, parseInt(c.curHP) + val) : Math.max(0, parseInt(c.curHP) - val);
-        document.getElementById('hp-input').value = ''; window.renderAll(); window.saveToStorage();
+        c.curHP = dir === 1
+            ? Math.min(parseInt(c.maxHP)||0, (parseInt(c.curHP)||0) + val)
+            : Math.max(0, (parseInt(c.curHP)||0) - val);
+        document.getElementById('hp-input').value = '';
+        window.renderAll(); window.saveToStorage();
     };
-    window.showDesc = (t, d) => { document.getElementById('modal-title').innerText = t; document.getElementById('modal-body').innerText = d || 'Немає опису...'; document.getElementById('desc-modal').style.display = 'flex'; };
-    window.showPage = (p) => { document.querySelectorAll('.page').forEach(el => el.classList.add('hidden')); document.getElementById(`page-${p}`).classList.remove('hidden'); [1,2,3].forEach(i => document.getElementById(`btn-p${i}`).classList.toggle('active', i === p)); };
+
+    window.showPage = (p) => {
+        document.querySelectorAll('.page').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`page-${p}`).classList.remove('hidden');
+        [1,2,3].forEach(i => {
+            const btn = document.getElementById(`btn-p${i}`);
+            btn.classList.toggle('border-black', i === p);
+            btn.classList.toggle('border-transparent', i !== p);
+        });
+    };
+
     window.switchChar = (i) => { state.activeChar = i; window.renderAll(); };
-    window.addNewChar = () => { state.chars.push(emptyChar()); state.activeChar = state.chars.length - 1; window.renderAll(); window.saveToStorage(); };
-    window.delChar = (i, e) => { e.stopPropagation(); if(state.chars.length > 1 && confirm("Видалити персонажа повністю?")) { state.chars.splice(i, 1); state.activeChar = 0; window.renderAll(); window.saveToStorage(); } };
+
+    window.addNewChar = () => {
+        state.chars.push(emptyChar());
+        state.activeChar = state.chars.length - 1;
+        window.renderAll(); window.saveToStorage();
+    };
+
+    window.delChar = (i, e) => {
+        e.stopPropagation();
+        if (state.chars.length > 1 && confirm("Видалити персонажа повністю?")) {
+            state.chars.splice(i, 1);
+            state.activeChar = 0;
+            window.renderAll(); window.saveToStorage();
+        }
+    };
 
     window.renderAll();
     window.showPage(1);

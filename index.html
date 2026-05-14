@@ -183,12 +183,12 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="dnd-border">
                 <select id="spAbility" onchange="window.upd('spAbility')" class="font-bold text-base">
-                    <option value="str">СИЛ</option>
-                    <option value="dex">СПР</option>
-                    <option value="con">ВИТ</option>
-                    <option value="int">ІНТ</option>
-                    <option value="wis">МДР</option>
-                    <option value="cha">ХАР</option>
+                    <option value="str">СИЛА</option>
+                    <option value="dex">ВПРАВНІСТЬ</option>
+                    <option value="con">СТАТУРА</option>
+                    <option value="int">ІНТЕЛЕКТ</option>
+                    <option value="wis">МУДРІСТЬ</option>
+                    <option value="cha">ХАРИЗМА</option>
                 </select>
                 <h3>Хар-ка магії</h3>
             </div>
@@ -284,7 +284,7 @@
     const DB_URL = "https://dndcharactersheet-7bcf2-default-rtdb.europe-west1.firebasedatabase.app/.json";
 
     const STATS = ["str", "dex", "con", "int", "wis", "cha"];
-    const STAT_LABELS = {str:"СИЛ", dex:"СПР", con:"ВИТ", int:"ІНТ", wis:"МДР", cha:"ХАР"};
+    const STAT_LABELS = {str:"СИЛ", dex:"ВПР", con:"СТАТ", int:"ІНТ", wis:"МДР", cha:"ХАР"};
     const SKILLS = [
         {n:"Атлетика", s:"str"}, {n:"Акробатика", s:"dex"}, {n:"Спритність рук", s:"dex"}, {n:"Прихованість", s:"dex"},
         {n:"Магія", s:"int"}, {n:"Історія", s:"int"}, {n:"Аналіз", s:"int"}, {n:"Природа", s:"int"}, {n:"Релігія", s:"int"},
@@ -440,6 +440,7 @@
 
         // HP bar
         document.getElementById('hp-bar-fill').style.width = Math.min(100, ((c.curHP||0) / (c.maxHP||1)) * 100) + '%';
+        document.getElementById('hp-temp-fill-bar').style.width = Math.min(100, ((c.tempHP||0) / (c.maxHP||1)) * 100) + '%';
 
         // Spell ability selector
         const spAbilityEl = document.getElementById('spAbility');
@@ -626,9 +627,18 @@
     window.calcHP = (dir) => {
         const c = state.chars[state.activeChar];
         const val = parseInt(document.getElementById('hp-input').value) || 0;
-        c.curHP = dir === 1
-            ? Math.min(parseInt(c.maxHP)||0, (parseInt(c.curHP)||0) + val)
-            : Math.max(0, (parseInt(c.curHP)||0) - val);
+        if (dir === 1) {
+            c.curHP = Math.min(parseInt(c.maxHP)||0, (parseInt(c.curHP)||0) + val);
+        } else {
+            let dmg = val;
+            const tempHP = parseInt(c.tempHP) || 0;
+            if (tempHP > 0) {
+                const absorb = Math.min(tempHP, dmg);
+                c.tempHP = tempHP - absorb;
+                dmg -= absorb;
+            }
+            c.curHP = Math.max(0, (parseInt(c.curHP)||0) - dmg);
+        }
         document.getElementById('hp-input').value = '';
         window.renderAll(); window.saveToStorage();
     };

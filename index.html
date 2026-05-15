@@ -28,6 +28,7 @@
 
         .dot { width: 12px; height: 12px; border: 1px solid black; border-radius: 50%; cursor: pointer; flex-shrink: 0; }
         .dot.active { background: black; }
+        .dot.expert { background: black; box-shadow: inset 0 0 0 2px gold; }
 
         .slot-box { width: 14px; height: 14px; border: 1px solid black; border-radius: 2px; cursor: pointer; display: inline-block; margin-right: 3px; background: white; transition: background 0.2s; }
         .slot-box.used { background: var(--dnd-red); border-color: var(--dnd-red); }
@@ -295,17 +296,23 @@
     const emptyChar = () => ({
         name: "Новий Герой", class_lvl: "", race: "", alignment: "",
         stats: {str:10, dex:10, con:10, int:10, wis:10, cha:10},
-        profSaves: [], profSkills: [], inventory: [], spells: [], attacks: [], traits: [],
-        prof: 2, ac: 10, init: 0, speed: 30, curHP: 10, maxHP: 10, tempHP: 0,
-        gp: 0, sp: 0, cp: 0, spAbility: "int",
-        spellConfig: [0,0,0,0,0,0,0,0,0],
-        usedSlots: [[],[],[],[],[],[],[],[],[]]
-    });
+            profSaves: [], profSkills: [], expSkills: [], inventory: [], spells: [], attacks: [], traits: [],
+            prof: 2, ac: 10, init: 0, speed: 30, curHP: 10, maxHP: 10, tempHP: 0,
+            gp: 0, sp: 0, cp: 0, spAbility: "int",
+            spellConfig: [0,0,0,0,0,0,0,0,0],
+            usedSlots: [[],[],[],[],[],[],[],[],[]]
+        });
 
     let state = JSON.parse(localStorage.getItem('dnd_v5_local')) || { chars: [emptyChar()], activeChar: 0 };
+    state.chars = (state.chars || [emptyChar()]).map(ch => ({
+        ...emptyChar(),
+        ...ch,
+        stats: {...emptyChar().stats, ...ch.stats},
+        profSaves: ch.profSaves || [],
+        profSkills: ch.profSkills || [],
+        expSkills: ch.expSkills || []
+    }));
     window.saveToStorage = () => localStorage.setItem('dnd_v5_local', JSON.stringify(state));
-
-    // ── Helpers ────────────────────────────────────────────────────────────────
 
     function getMod(statVal) { return Math.floor(((parseInt(statVal) || 10) - 10) / 2); }
 
@@ -478,12 +485,17 @@
 
         // Skills
         document.getElementById('skills-list').innerHTML = SKILLS.map(sk => {
-            const isP = c.profSkills.includes(sk.n);
-            const mod = getMod(c.stats[sk.s]) + (isP ? p : 0);
+            const isExpert = c.expSkills.includes(sk.n);
+            const isProf = c.profSkills.includes(sk.n);
+            const profState = isExpert ? 2 : isProf ? 1 : 0;
+            const mod = getMod(c.stats[sk.s]) + (profState === 1 ? p : profState === 2 ? p * 2 : 0);
+            const dotClass = profState === 2 ? 'expert' : isProf ? 'active' : '';
+            const title = profState === 2 ? 'Експертиза' : profState === 1 ? 'Майстерність' : 'Без майстерності';
+            const label = `${sk.n}${profState === 2 ? ' ✦' : ''}`;
             return `<div class="flex items-center gap-2 cursor-pointer py-0.5" onclick="window.tglSkill('${sk.n}')">
-                <div class="dot ${isP?'active':''}"></div>
+                <div class="dot ${dotClass}" title="${title}"></div>
                 <span class="font-bold w-6 text-center text-[10px] border-b border-black/20">${mod>=0?'+':''}${mod}</span>
-                <span class="text-[10px]">${sk.n}</span>
+                <span class="text-[10px]">${label}</span>
             </div>`;
         }).join('');
 
@@ -597,8 +609,19 @@
     };
 
     window.tglSkill = (n) => {
-        const s = state.chars[state.activeChar].profSkills;
-        state.chars[state.activeChar].profSkills = s.includes(n) ? s.filter(x=>x!==n) : [...s, n];
+        const c = state.chars[state.activeChar];
+        const isProf = c.profSkills.includes(n);
+        const isExpert = c.expSkills.includes(n);
+
+        if (isExpert) {
+            c.expSkills = c.expSkills.filter(x => x !== n);
+        } else if (isProf) {
+            c.profSkills = c.profSkills.filter(x => x !== n);
+            c.expSkills = [...c.expSkills, n];
+        } else {
+            c.profSkills = [...c.profSkills, n];
+        }
+
         window.renderAll(); window.saveToStorage();
     };
 
